@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from app.models import User
+from app.models import User, Task
 from app.schemas import CreateUser, UpdateUser
 
 # Сессия БД:
@@ -27,6 +27,17 @@ async def user_by_id(db: Annotated[Session, Depends(get_db)], user_id: int):
     user = db.scalar(select(User).where(User.id == user_id))
     if user is not None:
         return user
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f'User with id: \'{user_id}\' was not found'
+    )
+
+
+@router.get("/user_id/tasks")
+async def tasks_by_user_id(db: Annotated[Session, Depends(get_db)], user_id: int):
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is not None:
+        return db.scalars(select(Task).where(Task.user_id == user_id)).all()
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f'User with id: \'{user_id}\' was not found'
@@ -77,6 +88,8 @@ async def delete_user(db: Annotated[Session, Depends(get_db)], user_id: int):
     user = db.scalar(select(User).where(User.id == user_id))
     if user is not None:
         db.execute(delete(User).where(User.id == user_id))
+        if db.scalar(select(Task).where(Task.user_id == user_id)):
+            db.execute(delete(Task).where(Task.user_id == user_id))
         db.commit()
         return {
             'status_code': status.HTTP_200_OK,
