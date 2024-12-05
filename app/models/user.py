@@ -15,7 +15,3 @@ class User(Base):
 
     tasks = relationship('Task', back_populates='user')
 
-
-from sqlalchemy.schema import CreateTable
-
-print(CreateTable(User.__table__))
